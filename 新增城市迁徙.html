@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html>
+ 
+<head>
+    <meta charset="utf-8">
+    <title>echarts中国地图</title>
+    <style>
+        .centerItem {
+            width: 1400px;
+            height: 740px;
+
+
+        }
+    </style>
+</head>
+ 
+<body>
+    <!-- 中国地图展示 -->
+    <div id="mapBox" class="centerItem"></div>
+ 
+    <!-- 引入相关文件 -->
+    <script src="jquery-3.2.1.min.js"></script>
+    <!-- 引入 ECharts 文件 -->
+    <script src="echarts.min.js"></script>
+    <script src="china.js"></script>
+ 
+    <script>
+        // 基于准备好的dom，初始化echarts实例
+        var mapBoxEchart = echarts.init(document.getElementById('mapBox'));
+        var geoCoordMap = { //可以在地图上显示的城市的坐标信息
+        '绍兴': [120.579, 29.992],
+		'呼伦贝尔':[120.053,49.282],
+		'宁波':[121.542,29.872],
+		'杭州':[120.165, 30.319],
+		'齐齐哈尔':[123.964,47.343],
+		'西安':[108.9480,34.2632],
+        '金华':[119.649,29.107],
+        '通辽':[122.263,43.617],
+        '呼和浩特':[111.67,40.81],
+        '兴安盟':[122.07,46.076],
+        '赤峰':[118.956,42.275],
+        '台州':[121.4286,28.66],
+        '上海':[121.4726,31.2317],
+        '舟山':[122.1068,30.0160],
+        '嘉兴':[120.7509,30.7627],
+        '湖州':[120.1024,30.8672],
+        '大庆':[125.1127,46.5907],
+        '哈尔滨':[126.6425,45.7570],
+        '白城':[122.8411,45.6190],
+        '绥化':[126.9929,46.63739],
+        '黑河':[127.4990,50.2496],
+        '咸阳':[108.7051,34.3334],
+        '渭南':[109.50288,34.4994],
+        '宝鸡':[107.1449,34.3693],
+        };
+        var HFData = [ // 数据中name的城市名称必须与geoCoordMap中城市名称一致, 不然关联不上，合肥到各地区的线路
+            [{name: '绍兴'}, {name: '杭州',value: 45}],
+            [{name: '绍兴'}, {name: '金华',value: 9}],
+            [{name: '绍兴'}, {name: '宁波',value: 8}],
+            [{name: '呼伦贝尔'}, {name: '齐齐哈尔',value: 24}],
+            [{name: '呼伦贝尔'}, {name: '通辽',value: 10}],
+            [{name: '呼伦贝尔'}, {name: '呼和浩特',value: 10}],
+            [{name: '呼伦贝尔'}, { name: '兴安盟',value: 9}],
+            [{name: '呼伦贝尔'}, {name: '赤峰',value: 8}],
+            [{name: '宁波'}, {name: '杭州',value: 11}],
+            [{name: '宁波'}, {name: '台州',value: 8}],
+            [{name: '宁波'}, {name: '上海',value: 8}],
+            [{name: '宁波'}, {name: '绍兴',value: 8}],
+            [{name: '宁波'}, {name: '金华',value: 6}],
+            [{name: '宁波'}, {name: '舟山',value: 5}],
+            [{name: '宁波'}, {name: '嘉兴',value: 5}],
+            [{name: '杭州'}, {name: '嘉兴',value: 23}],
+            [{name: '杭州'}, {name: '绍兴',value: 14}],
+            [{name: '杭州'}, {name: '湖州',value: 13}],
+            [{name: '杭州'}, {name: '上海',value: 6}],
+            [{name: '杭州'}, {name: '金华',value: 6}],
+            [{name: '齐齐哈尔'}, {name: '大庆',value: 13}],
+            [{name: '齐齐哈尔'}, {name: '哈尔滨',value: 11}],
+            [{name: '齐齐哈尔'}, {name: '白城',value: 9}],
+            [{name: '齐齐哈尔'}, {name: '绥化',value: 9}],
+            [{name: '齐齐哈尔'}, {name: '兴安盟',value: 9}],
+            [{name: '齐齐哈尔'}, {name: '黑河',value: 8}],
+            [{name: '齐齐哈尔'}, {name: '呼伦贝尔',value: 7}],
+            [{name: '西安'}, {name: '咸阳',value: 38}],
+            [{name: '西安'}, {name: '渭南',value: 17}],
+            [{name: '西安'}, {name: '宝鸡',value: 9}],
+        ];
+        var planePath = 'arrow'; // 箭头的svg
+        // push进去线路开始-结束地点-经纬度
+        var convertData = function(data) {
+            var res = [];
+            for (var i = 0; i < data.length; i++) {
+                var dataItem = data[i];
+                var fromCoord = geoCoordMap[dataItem[0].name];
+                var toCoord = geoCoordMap[dataItem[1].name];
+                if (fromCoord && toCoord) {
+                    res.push([{
+                        coord: fromCoord
+                    }, {
+                        coord: toCoord
+                    }]);
+                }
+            }
+            return res;
+        };
+        var color = ['#fff', '#FFFFA8', '#46bee9']; //圆圈和字的颜色，线的颜色，箭头颜色
+        // 数据
+        var series = [];
+        // 遍历由合肥到其他城市的线路
+        [
+            ['', HFData]
+        ].forEach(function(item, i) {
+            // 配置
+            series.push(
+
+                {
+                // 系列名称，用于tooltip的显示
+                name: item[0],
+                type: 'lines',
+                zlevel: 1, // 用于 Canvas 分层，不同zlevel值的图形会放置在不同的 Canvas 中
+                // effect出发到目的地 的白色尾巴线条
+                // 线特效的配置
+                effect: {
+                    show: true,
+                    period: 6, // 特效动画的时间，单位为 s
+                    trailLength: 0.1, // 特效尾迹的长度。取从 0 到 1 的值，数值越大尾迹越长
+                    color: '#46bee9', // 移动箭头颜色
+                    symbol: planePath,
+                    symbolSize: 6 // 特效标记的大小
+                },
+                // lineStyle出发到目的地 的线条颜色
+                lineStyle: {
+                    normal: {
+                        color: color[i],
+                        width: 0,
+                        curveness: 0.2 //幅度
+                    }
+                },
+                data: convertData(item[1]) //开始到结束数据
+            }, 
+            {
+                //出发地信息
+                name: item[0],
+                type: 'lines',
+                zlevel: 2,
+                effect: {
+                    show: true,
+                    period: 6,
+                    trailLength: 0,
+                    symbol: planePath,
+                    symbolSize: 6
+                },
+                lineStyle: {
+                    normal: {
+                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [{
+                            offset: 0,
+                            color: '#FFFFA8' // 出发
+                        }, {
+                            offset: 1,
+                            color: '#58B3CC ' // 结束 颜色
+                        }], false),
+                        width: 1.5,
+                        opacity: 0.4,
+                        curveness: 0.2
+                    }
+                },
+                data: convertData(item[1])
+            }, 
+            {
+                // 目的地信息
+                name: item[0],
+                type: 'effectScatter',
+                coordinateSystem: 'geo',
+                zlevel: 2,
+                rippleEffect: {
+                    brushType: 'stroke'
+                },
+                label: {
+                    normal: {
+                        show: true,
+                        position: 'right',
+                        formatter: '{b}'
+                    }
+                },
+                symbolSize: function(val) {
+                    return val[2] / 8;
+                },
+                itemStyle: {
+                    normal: {
+                        color: color[i]
+                    }
+                },
+                data: item[1].map(function(dataItem) {
+                    return {
+                        name: dataItem[1].name,
+                        value: geoCoordMap[dataItem[1].name].concat([dataItem[1].value])
+                    };
+                })
+            });
+        });
+ 
+        // 指定相关的配置项和数据
+        var mapBoxOption = {
+            title: {  //标题样式
+                text: '12月14日-国内新冠疫情新增病例城市迁出数据',
+                subtext:'迁出数据来源于百度迁徙数据，仅展示靠前排名城市',
+                sublink: 'https://qianxi.baidu.com/',
+                subtextStyle:{
+                    fontSize:18,
+                },
+                x: "center",
+                textStyle: {
+                    fontSize: 24,
+                    color: "black"
+                },
+            },
+
+            
+            geo: {
+                top:'12%',
+                map: 'china',
+                roam: true, // 是否开启鼠标缩放和平移漫游。默认不开启。如果只想要开启缩放或者平移，可以设置成 'scale' 或者 'move'。设置成 true 为都开启
+                aspectScale: 0.75,
+                zoom: 1.20,
+                label: {
+                    normal: {  //静态时显示的默认样式
+                        show: false,
+                        textStyle: {
+                            color: '#00a0c9'
+                        }
+                    },
+                    emphasis: { // 鼠标进入动态时显示的默认样式
+                        show: true,
+                        textStyle: {
+                            color:'black',
+                            fontSize:16,
+                            position:'insideTop',
+                        }
+                    }
+                },
+                itemStyle: {
+                    normal: {
+                        areaColor: '#0083ce',
+                        borderColor: '#0066ba'
+                    },
+                    emphasis: {
+                        borderWidth: 0,
+                        borderColor: '#0066ba',
+                        areaColor: "#0494e1",
+                        shadowColor: 'rgba(0, 0, 0, 0.5)'
+                    }
+                }
+            },
+            series: series
+        };
+        // 使用制定的配置项和数据显示图表
+        mapBoxEchart.setOption(mapBoxOption);
+        // echart图表自适应
+        window.addEventListener("resize", function() {
+            mapBoxEchart.resize();
+        });
+    </script>
+ 
+</body>
+ 
+</html>
